@@ -1,35 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, ShieldAlert, CheckCircle2, History } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+import { API_BASE_URL } from '../config';
 
 export default function Tracker() {
   const [reports, setReports] = useState([]);
   const safeId = localStorage.getItem('safe_id');
 
   useEffect(() => {
-    // Mock reports for static deployment
-    setTimeout(() => {
-      const mockData = [
-        {
-          _id: '1',
-          userId: safeId,
-          category: 'Suspicious Activity',
-          description: 'Spotted someone looking into parked cars.',
-          status: 'Verified',
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          _id: '2',
-          userId: safeId,
-          category: 'Unsafe Area',
-          description: 'Streetlights are broken on this block, feels very unsafe.',
-          status: 'Under Review',
-          timestamp: new Date(Date.now() - 1800000).toISOString()
-        }
-      ];
-      setReports(mockData.reverse());
-    }, 500);
+    const fetchReports = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/reports`);
+        const data = await response.json();
+        // Filter for user's reports if needed, but for demo show all or user specific
+        const userReports = data.filter(r => r.userId === safeId || r.userId === 'ANONYMOUS');
+        setReports(userReports.reverse());
+      } catch (error) {
+        console.error("Failed to fetch reports:", error);
+      }
+    };
+    fetchReports();
   }, [safeId]);
 
   return (

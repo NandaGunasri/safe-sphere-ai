@@ -8,11 +8,13 @@ import Tracker from './pages/Tracker';
 import Journey from './pages/Journey';
 import { AlertTriangle, Map, LayoutDashboard, Route as RouteIcon, PlusCircle, Link2Off } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+import { API_BASE_URL } from './config';
+import useGeolocation from './hooks/useLocation';
 
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { location: gpsLocation } = useGeolocation();
   const [offline, setOffline] = useState(!navigator.onLine);
   
   useEffect(() => {
@@ -31,10 +33,22 @@ function AppContent() {
   const handleSOS = async () => {
     alert("🚨 EMERGENCY ALERT SENT! Locating nearest help...");
     
-    // Mock SOS Logging for purely static deployment
-    setTimeout(() => {
-      console.log("SOS Alert stored locally or sent to mock dispatcher.");
-    }, 500);
+    try {
+      const safeId = localStorage.getItem('safe_id') || 'ANONYMOUS';
+      // If we could access geolocation easily we would add it here.
+      await fetch(`${API_BASE_URL}/sos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: safeId, 
+          latitude: gpsLocation ? gpsLocation[0] : null,
+          longitude: gpsLocation ? gpsLocation[1] : null 
+        })
+      });
+      console.log("SOS Alert stored securely in backend.");
+    } catch (error) {
+      console.error("SOS Alert failed:", error);
+    }
   };
 
   const showNav = location.pathname !== '/';
@@ -44,7 +58,7 @@ function AppContent() {
       {offline && (
         <div className="bg-yellow-500/90 text-black px-4 py-2 text-sm flex items-center justify-center font-medium sticky top-0 z-50">
           <Link2Off className="w-4 h-4 mr-2" />
-          No internet? Syncing paused.
+          No internet. Data will sync later.
         </div>
       )}
 

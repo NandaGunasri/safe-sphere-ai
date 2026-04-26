@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Mic, FileWarning, EyeOff, Send, CheckCircle2, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE = 'http://localhost:3000';
+import useLocation from '../hooks/useLocation';
+import { API_BASE_URL } from '../config';
 
 export default function ReportForm() {
   const [desc, setDesc] = useState('');
@@ -10,6 +10,7 @@ export default function ReportForm() {
   const [recording, setRecording] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const navigate = useNavigate();
+  const { location, loading } = useLocation();
 
   const handleMic = () => {
     setRecording(true);
@@ -23,11 +24,25 @@ export default function ReportForm() {
     e.preventDefault();
     if (!desc) return;
 
-    // Mock submission for static deployment
-    setTimeout(() => {
+    try {
+      const safeId = localStorage.getItem('safe_id') || 'ANONYMOUS';
+      await fetch(`${API_BASE_URL}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: safeId,
+          category,
+          description: desc,
+          latitude: location[0],
+          longitude: location[1]
+        })
+      });
+
       setSubmitted(true);
       setTimeout(() => navigate('/tracker'), 2000);
-    }, 600);
+    } catch (error) {
+      console.error("Failed to submit report:", error);
+    }
   };
 
   if (submitted) {
@@ -89,12 +104,15 @@ export default function ReportForm() {
 
         <div className="flex items-center gap-2 text-sm text-gray-400 justify-center">
           <MapPin size={16} className="text-neon-green" /> 
-          Auto-detected: <span className="text-white">5th Avenue</span>
+          GPS: <span className="text-white">
+            {loading ? 'Locating...' : `${location[0].toFixed(4)}, ${location[1].toFixed(4)}`}
+          </span>
         </div>
 
         <button 
           type="submit"
-          className="mt-auto mb-24 w-full bg-neon-blue text-black font-bold text-lg py-4 rounded-2xl flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(0,243,255,0.4)] active:scale-95 transition-transform"
+          disabled={loading}
+          className={`mt-auto mb-24 w-full bg-neon-blue text-black font-bold text-lg py-4 rounded-2xl flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(0,243,255,0.4)] active:scale-95 transition-transform ${loading ? 'opacity-50' : ''}`}
         >
           <Send size={20} /> Submit Securely
         </button>
